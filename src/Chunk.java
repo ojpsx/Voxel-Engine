@@ -95,7 +95,7 @@ public class Chunk {
             eU[ID], eV[ID]
             };
     }
-    public float[] CreateCube(float x, float y, float z) {
+    public static float[] CreateCube(float x, float y, float z) {
 		return new float[] {
 				// Top Quad
 				x , y ,z-1,
