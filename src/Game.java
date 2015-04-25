@@ -3,7 +3,6 @@ import java.awt.Font;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 import java.util.Arrays;
-import java.util.Random;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.LWJGLException;
@@ -14,7 +13,6 @@ import static org.lwjgl.opengl.ARBBufferObject.glDeleteBuffersARB;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
 import org.lwjgl.util.glu.GLU;
-import org.lwjgl.util.vector.Vector3f;
 import org.newdawn.slick.Color;
 import org.newdawn.slick.TrueTypeFont;
 import org.newdawn.slick.util.ResourceLoader;
@@ -24,10 +22,6 @@ import static org.newdawn.slick.opengl.renderer.SGL.GL_TEXTURE_WRAP_S;
 
 public class Game {
               
-    private Vector3f    position    = null; //3d vector to store the camera's position in
-    private float       yaw         = 0.0f; //the rotation around the Y axis of the camera
-    private float       pitch       = 0.0f; //the rotation around the X axis of the camera
-
     float[] coord; //get coordinates from camera
     
     private Texture atlas;
@@ -37,11 +31,12 @@ public class Game {
      int quadFaces =6;
      int colorSize = 3;
     
-     boolean DebugMode = false;
-       boolean ChatMode = false;
-       String chatInput = "";
-       float ChatTimer = 0f;
-    TrueTypeFont font;
+     //move to a interface class???
+//     boolean DebugMode = false;
+//       boolean ChatMode = false;
+//       String chatInput = "";
+//       float ChatTimer = 0f;
+   TrueTypeFont font;
     
     public static final boolean VSYNC = true;
     public static final int WIDTH = 1280;
@@ -87,16 +82,25 @@ public class Game {
         Font awtFont = new Font("Times New Roman", Font.BOLD, 12) {};
     font = new TrueTypeFont(awtFont, false);
 
-        resize();
     getDelta();
     lastFPS = getTime();// call once before loop to initialise lastFrame
     running = true;
+    
     FPCameraController camera = new FPCameraController(0, 0, 0);
     float dx                 = 0.0f;
     float dy                 = 0.0f;
     float mouseSensitivity   = 0.05f;
     float movementSpeed      = 0.005f; //move 0.010 units per second
 
+    // compile and link vertex and fragment shaders into
+		// a "program" that resides in the OpenGL driver
+		ShaderProgram shader = new ShaderProgram();
+ 		
+               //throws exception unable to load shader currentyso commented out util get chance to debug... 
+                //shader.init("simple.vertex", "simple.fragment");
+    
+    
+    
     initTexture();
 
 
@@ -148,7 +152,7 @@ int[][][] chunk = new int[Chunk.chunkSize][Chunk.chunkSize][Chunk.chunkSize];
         for (int Y=0; Y<Chunk.chunkSize; Y++){
                 for (int Z=0; Z<Chunk.chunkSize; Z++){
                     if (chunk[X][Y][Z] > 0){
-                  vertexData.put(CreateCube((float) X,(float) Y,(float) Z));
+                  vertexData.put(Chunk.CreateCube((float) X,(float) Y,(float) Z));
                   texture3dData.put(Chunk.gettexCoord(chunk[X][Y][Z]));}
                 }
         }
@@ -201,10 +205,7 @@ int[][][] chunk = new int[Chunk.chunkSize][Chunk.chunkSize][Chunk.chunkSize];
         // While we're still running and the user hasn't closed the window... 
         while (running && !Display.isCloseRequested()) {
             int delta = getDelta();
-            update(delta); //write function from www.breadmilkbearcigarettes/bmbc/shelves/users/bbb/src/java/SpinningTextureCube.php
-            // If the game was resized, we need to update our projection
-            if (Display.wasResized())
-                resize();
+            updateFPS();
 
         dx = Mouse.getDX();
         dy = Mouse.getDY();
@@ -262,7 +263,7 @@ camera.lookThrough();
      renderText();
      
             // Flip the buffers and sync to 60 FPS
-            Display.sync(120);
+            Display.sync(60);
             Display.update();
             
         }
@@ -329,12 +330,7 @@ glEnable(GL_DEPTH_TEST);
         GL11.glDisableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
    }
 
-//    // Called to resize our game
-    protected void resize() {
-        glViewport(0, 0, Display.getWidth(), Display.getHeight());
-        // ... update our projection matrices here ...
-    }
-    // Called to destroy our game upon exiting
+    // Clean up on exit
     protected void dispose() {
         glDeleteBuffersARB(vboVertexHandle);glDeleteBuffersARB(vboVertexHandle);
         glDeleteBuffersARB(vbo3dTexCoordHandle);glDeleteBuffersARB(vbo3dTexCoordHandle);
@@ -343,35 +339,25 @@ glEnable(GL_DEPTH_TEST);
 		long time = getTime();
 		int delta = (int) (time - lastFrame);
 		lastFrame = time;
-		      
 		return delta;
 	}
     public long getTime() {
 		return (Sys.getTime() * 1000) / Sys.getTimerResolution();
 	}
     public void updateFPS() {
+        // if VSYNC is enabled FPS wont go above 60 regardless of max sync rate being set higher. 
+        //VSYNC off does yield the expected performance increase
 		if (getTime() - lastFPS > 1000) {
                     finalFPS = fps;
-			fps = 0;
-			lastFPS += 1000;
+                    fps = 0;
+                    lastFPS += 1000;
 		}
 		fps++;
 }
-    public void update(int delta){
-       xRotation += 0.01 * delta;
-       if (xRotation >360f)
-           xRotation = 0;
-       yRotation += 0.02 * delta;
-        if (yRotation >360f)
-           yRotation = 0;
-        updateFPS();
-        
-    }
     
     public void initTexture() {
  
 try {glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			// load texture from PNG file
 
 atlas = TextureLoader.getTexture("{PNG", ResourceLoader.getResourceAsStream("res/Atlas.png"));
 
@@ -384,43 +370,6 @@ atlas = TextureLoader.getTexture("{PNG", ResourceLoader.getResourceAsStream("res
 	INTRO, GAME, MAIN_MENU;
 }
    
-public float[] CreateCube(float x, float y, float z) {
-		return new float[] {
-				// Top Quad
-				x , y ,z-1,
-				x - 1,y, z-1,
-				x-1,y , z,
-				x ,y , z,
-				// Bottom
-				x , y-1 ,z,
-				x - 1,y-1, z,
-				x-1,y-1 , z-1,
-				x ,y-1 , z-1,
-				// FRONT QUAD
-				x , y ,z,
-				x - 1,y, z,
-				x-1,y-1 , z,
-				x ,y -1, z,
-				// BACK QUAD
-				x , y-1 ,z-1,
-				x - 1,y-1, z-1,
-				x-1,y , z-1,
-				x ,y, z-1,
-				// LEFT QUAD
-                                x-1, y ,z,
-				x - 1,y, z-1,
-				x-1,y-1 , z-1,
-				x -1,y-1, z,
-				
-				// RIGHT QUAD
-				  x, y ,z-1,
-				x ,y, z,
-				x,y-1 , z,
-				x ,y-1, z-1,
-                
-                };
-                               
-}
 public float[] CreateSquare(float x, float y, float z,float Size) {
 		return new float[] {
 
@@ -428,10 +377,8 @@ public float[] CreateSquare(float x, float y, float z,float Size) {
 				x - Size,y, z,
 				x-Size,y-Size ,z,
 				x ,y -Size, z,
-				
-                
+				               
                 };
-
 }
    protected void renderSetup2d(){
     GL11.glEnable(GL11.GL_BLEND);
@@ -484,8 +431,7 @@ font.drawString(10, 40, "Coord: " + Arrays.toString(coord), Color.white);
         
 GL11.glEnable(GL11.GL_LIGHTING);
     GL11.glEnable(GL11.GL_DEPTH_TEST);
-        
-         
+                 
     }
    
    public int PlayerVoxel(float coordIn)
