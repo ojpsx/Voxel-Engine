@@ -1,7 +1,8 @@
 public class Chunk {
     
-    static public int[][][] chunk = new int[16][16][16];
-    static int chunkSize = 16;
+    static final int chunkSize = 16;
+    static public int[][][] chunk = new int[chunkSize][chunkSize][chunkSize];
+    
    
    public static void FillChunk(){
     for (int X=0; X<chunkSize+1; X++){

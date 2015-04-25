@@ -99,24 +99,23 @@ public class Game {
 
     initTexture();
 
-    int chunkSize = 16;
 
-int[][][] chunk = new int[16][16][16];
+int[][][] chunk = new int[Chunk.chunkSize][Chunk.chunkSize][Chunk.chunkSize];
 
 
    
-    for (int X=0; X<chunkSize; X++){
-        for (int Y=0; Y<chunkSize; Y++){
-                for (int Z=0; Z<chunkSize; Z++){
-                                        if ((chunkSize-Y)+(SimplexNoise.noise(X/3,Z/3)*5)>0){
+    for (int X=0; X<Chunk.chunkSize; X++){
+        for (int Y=0; Y<Chunk.chunkSize; Y++){
+                for (int Z=0; Z<Chunk.chunkSize; Z++){
+                                        if ((Chunk.chunkSize-Y)+(SimplexNoise.noise(X/3,Z/3)*5)>0){
                         chunk[X][Y][Z] = 1;}
                                                             }
                 }
         }
     
-        for (int X=0; X<chunkSize; X++){
-        for (int Y=0; Y<chunkSize; Y++){
-                for (int Z=0; Z<chunkSize; Z++){
+        for (int X=0; X<Chunk.chunkSize; X++){
+        for (int Y=0; Y<Chunk.chunkSize; Y++){
+                for (int Z=0; Z<Chunk.chunkSize; Z++){
                                         if (chunk[X][Y][Z] == 1){
                                             int nY;
                         
@@ -139,15 +138,15 @@ int[][][] chunk = new int[16][16][16];
     //hide the mouse
     Mouse.setGrabbed(true);
                     FloatBuffer texture3dData = BufferUtils
-            .createFloatBuffer(amountOfVertices * quadFaces * 2 * chunkSize*chunkSize*chunkSize*2);
+            .createFloatBuffer(amountOfVertices * quadFaces * 2 * Chunk.chunkSize*Chunk.chunkSize*Chunk.chunkSize*2);
                     
                           
-        FloatBuffer vertexData = BufferUtils.createFloatBuffer(vertexSize*amountOfVertices*quadFaces*chunkSize*chunkSize*chunkSize*2);
+        FloatBuffer vertexData = BufferUtils.createFloatBuffer(vertexSize*amountOfVertices*quadFaces*Chunk.chunkSize*Chunk.chunkSize*Chunk.chunkSize*2);
         
         
-            for (int X=0; X<chunkSize; X++){
-        for (int Y=0; Y<chunkSize; Y++){
-                for (int Z=0; Z<chunkSize; Z++){
+            for (int X=0; X<Chunk.chunkSize; X++){
+        for (int Y=0; Y<Chunk.chunkSize; Y++){
+                for (int Z=0; Z<Chunk.chunkSize; Z++){
                     if (chunk[X][Y][Z] > 0){
                   vertexData.put(CreateCube((float) X,(float) Y,(float) Z));
                   texture3dData.put(Chunk.gettexCoord(chunk[X][Y][Z]));}
