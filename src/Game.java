@@ -26,10 +26,7 @@ public class Game {
     
     private Texture atlas;
           
-     int vertexSize = 3;
-     int amountOfVertices = 4;
-     int quadFaces =6;
-     int colorSize = 3;
+
     
      //move to a interface class???
 //     boolean DebugMode = false;
@@ -97,75 +94,37 @@ public class Game {
 		ShaderProgram shader = new ShaderProgram();
  		
                //throws exception unable to load shader currentyso commented out util get chance to debug... 
-                //shader.init("simple.vertex", "simple.fragment");
-    
-    
+                //shader.init("simple.vertex", "simple.fragment");  
     
     initTexture();
 
 
-int[][][] chunk = new int[Chunk.chunkSize][Chunk.chunkSize][Chunk.chunkSize];
-
-
-   
+//int[][][] chunk = new int[Chunk.chunkSize][Chunk.chunkSize][Chunk.chunkSize];
+       Chunk chunk = new Chunk();
+                   FloatBuffer texture3dData = BufferUtils
+            .createFloatBuffer(Chunk.amountOfVertices * Chunk.quadFaces * 2 * Chunk.chunkSize*Chunk.chunkSize*Chunk.chunkSize*2);
+                    
+                          
+        FloatBuffer vertexData = BufferUtils.createFloatBuffer(Chunk.vertexSize*Chunk.amountOfVertices*Chunk.quadFaces*Chunk.chunkSize*Chunk.chunkSize*Chunk.chunkSize*2);
+        
     for (int X=0; X<Chunk.chunkSize; X++){
         for (int Y=0; Y<Chunk.chunkSize; Y++){
                 for (int Z=0; Z<Chunk.chunkSize; Z++){
-                                        if ((Chunk.chunkSize-Y)+(SimplexNoise.noise(X/3,Z/3)*5)>0){
-                        chunk[X][Y][Z] = 1;}
-                                                            }
-                }
-        }
-    
-        for (int X=0; X<Chunk.chunkSize; X++){
-        for (int Y=0; Y<Chunk.chunkSize; Y++){
-                for (int Z=0; Z<Chunk.chunkSize; Z++){
-                                        if (chunk[X][Y][Z] == 1){
-                                            int nY;
-                        
-                        if (Y>2){
-                            nY = Y-2;}
-                        else {
-                            nY =0;}
-                        chunk[X][nY][Z] = 2;
-                    if(SimplexNoise.noise(X/3,Y/3,Z/3)>0.6){
-                      
-                        chunk[X][nY][Z] = 1;}
-                  
-                                        }
-
-                                        }
-                }
-        }
-    
-        
-    //hide the mouse
-    Mouse.setGrabbed(true);
-                    FloatBuffer texture3dData = BufferUtils
-            .createFloatBuffer(amountOfVertices * quadFaces * 2 * Chunk.chunkSize*Chunk.chunkSize*Chunk.chunkSize*2);
-                    
-                          
-        FloatBuffer vertexData = BufferUtils.createFloatBuffer(vertexSize*amountOfVertices*quadFaces*Chunk.chunkSize*Chunk.chunkSize*Chunk.chunkSize*2);
-        
-        
-            for (int X=0; X<Chunk.chunkSize; X++){
-        for (int Y=0; Y<Chunk.chunkSize; Y++){
-                for (int Z=0; Z<Chunk.chunkSize; Z++){
-                    if (chunk[X][Y][Z] > 0){
+                    if (chunk.getChunkContent(X,Y,Z) > 0){
                   vertexData.put(Chunk.CreateCube((float) X,(float) Y,(float) Z));
-                  texture3dData.put(Chunk.gettexCoord(chunk[X][Y][Z]));}
+                  texture3dData.put(Chunk.gettexCoord(chunk.getChunkContent(X,Y,Z)));}
                 }
         }
    }
-            
-            texture3dData.put(Chunk.gettexCoord(6));
+                texture3dData.put(Chunk.gettexCoord(6));
             vertexData.put(Chunk.CreateSkyBox(100f,100f,100f,210f));
             texture3dData.flip();
-            vertexData.flip();
-            
-
-        
-        FloatBuffer vertex2dData = BufferUtils.createFloatBuffer(vertexSize*amountOfVertices);
+            vertexData.flip();                
+    
+    //hide the mouse
+    Mouse.setGrabbed(true);
+    
+        FloatBuffer vertex2dData = BufferUtils.createFloatBuffer(Chunk.vertexSize*Chunk.amountOfVertices);
         vertex2dData.put(CreateSquare(-0.06f,-0.03f,-0.1f,0.01f));
         vertex2dData.flip();
             
@@ -175,7 +134,7 @@ int[][][] chunk = new int[Chunk.chunkSize][Chunk.chunkSize][Chunk.chunkSize];
                 float xV2=65.0f/512.0f; //row in atlas end
         
             FloatBuffer texture2dData = BufferUtils
-            .createFloatBuffer(amountOfVertices * 2);
+            .createFloatBuffer(Chunk.amountOfVertices * 2);
     texture2dData.put(new float[] { xU, xV, }); // Texture Coordinate
     texture2dData.put(new float[] { xU, xV2, }); // Texture Coordinate
     texture2dData.put(new float[] { xU2, xV2, }); // Texture Coordinate
@@ -311,7 +270,7 @@ GL11.glEnable(GL11.GL_TEXTURE_2D);
 glEnable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBindBuffer(GL_ARRAY_BUFFER, vboVertexHandle);
-        GL11.glVertexPointer(vertexSize, GL11.GL_FLOAT, 0, 0L);
+        GL11.glVertexPointer(Chunk.vertexSize, GL11.GL_FLOAT, 0, 0L);
         glBindBuffer(GL_ARRAY_BUFFER, vbo3dTexCoordHandle);
         
         atlas.bind();
@@ -393,7 +352,7 @@ GL11.glMatrixMode(GL_MODELVIEW);
    protected void render2d() {
      
         glBindBuffer(GL_ARRAY_BUFFER, vbo2dVertexHandle);
-        GL11.glVertexPointer(vertexSize, GL11.GL_FLOAT, 0, 0L);
+        GL11.glVertexPointer(Chunk.vertexSize, GL11.GL_FLOAT, 0, 0L);
         glBindBuffer(GL_ARRAY_BUFFER, vbo2dTexCoordHandle);
         
         GL11.glTexCoordPointer(2, GL11.GL_FLOAT, 0, 0);
