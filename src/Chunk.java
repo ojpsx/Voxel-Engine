@@ -1,20 +1,45 @@
 public class Chunk {
     
     static final int chunkSize = 16;
-    static public int[][][] chunk = new int[chunkSize][chunkSize][chunkSize];
+    private static final int[][][] chunk = new int[chunkSize][chunkSize][chunkSize];
+    static final int vertexSize = 3;
+    static final int amountOfVertices = 4;
+    static final int quadFaces =6;
+    static final int colorSize = 3;
     
    
-   public static void FillChunk(){
-    for (int X=0; X<chunkSize+1; X++){
-        for (int Y=0; Y<chunkSize+1; Y++){
-                for (int Z=0; Z<chunkSize+1; Z++){
-                 chunk[X][Y][Z] = 1;   
+   public Chunk() {
+   for (int X=0; X<Chunk.chunkSize; X++){
+        for (int Y=0; Y<Chunk.chunkSize; Y++){
+                for (int Z=0; Z<Chunk.chunkSize; Z++){
+                                        if ((Chunk.chunkSize-Y)+(SimplexNoise.noise(X/3,Z/3)*5)>0){
+                        chunk[X][Y][Z] = 1;}
                 }
+            }
         }
-   }
     
+        for (int X=0; X<Chunk.chunkSize; X++){
+            for (int Y=0; Y<Chunk.chunkSize; Y++){
+                for (int Z=0; Z<Chunk.chunkSize; Z++){
+                      if (chunk[X][Y][Z] == 1){
+                                            int nY;
+                        
+                        if (Y>2){nY = Y-2;}
+                        else {nY =0;}
+                        chunk[X][nY][Z] = 2;
+                    if(SimplexNoise.noise(X/3,Y/3,Z/3)>0.6){chunk[X][nY][Z] = 1;}
+                  
+                                                }
+                   }
+                }
+            }
+
 }
+    public static int getChunkContent(int x, int y, int z) {
+        return chunk[x][y][z];
+        
     
+    }
     public static int getchunkSize(){
      
         return chunkSize * chunkSize * chunkSize;
@@ -199,6 +224,3 @@ public class Chunk {
                 };
     }
 }
-       
-
-
