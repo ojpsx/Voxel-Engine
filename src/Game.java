@@ -41,7 +41,7 @@ public class Game {
   FloatBuffer sourcePos = (FloatBuffer)BufferUtils.createFloatBuffer(3).put(new float[] { 0.0f, 0.0f, 0.0f }).rewind();
  
   /** Velocity of the source sound. */
-  FloatBuffer sourceVel = (FloatBuffer)BufferUtils.createFloatBuffer(3).put(new float[] { 0.0f, 0.0f, 0.0f }).rewind();
+  FloatBuffer sourceVel = (FloatBuffer)BufferUtils.createFloatBuffer(3).put(new float[] { 0.0f, 0.0f, 0.1f }).rewind();
  
   /** Position of the listener. */
   FloatBuffer listenerPos = (FloatBuffer)BufferUtils.createFloatBuffer(3).put(new float[] { 0.0f, 0.0f, 0.0f }).rewind();
@@ -52,13 +52,7 @@ public class Game {
   /** Orientation of the listener. (first 3 elements are "at", second 3 are "up") */
   FloatBuffer listenerOri = (FloatBuffer)BufferUtils.createFloatBuffer(6).put(new float[] { 0.0f, 0.0f, -1.0f,  0.0f, 1.0f, 0.0f }).rewind();
  
-  /**
-  * boolean LoadALData()
-  *
-  *  This function will load our sample data from the disk using the Alut
-  *  utility and send the data into OpenAL as a buffer. A source is then
-  *  also created to play that buffer.
-  * **/
+ 
     
      //move to a interface class???
 //     boolean DebugMode = false;
@@ -77,6 +71,7 @@ public class Game {
         long finalFPS;
 	float xRotation = 0f;
 	float yRotation = 0f;
+        int AudioMoving =0;
 
     public static final boolean FULLSCREEN = false; // Whether to use fullscreen mode
     protected boolean running = false; // Whether our game loop is running
@@ -93,6 +88,14 @@ public class Game {
 
     // Start our game
     public void start() {
+        
+     try{
+      AL.create();
+    } catch (LWJGLException le) {
+      le.printStackTrace();
+      
+    }
+    AL10.alGetError();
         // Set up our display 
         try {
         Display.setTitle("Voxel Engine"); //title of our window
@@ -101,13 +104,7 @@ public class Game {
         Display.setVSyncEnabled(VSYNC); //whether hardware VSync is enabled
         Display.setFullscreen(FULLSCREEN); //whether fullscreen is enabled
 
-            try{
-      AL.create();
-    } catch (LWJGLException le) {
-      le.printStackTrace();
-      return;
-    }
-    AL10.alGetError();
+
  
     // Load the wav data.
     if(loadALData() == AL10.AL_FALSE) {
@@ -134,7 +131,8 @@ public class Game {
     float dx                 = 0.0f;
     float dy                 = 0.0f;
     float mouseSensitivity   = 0.05f;
-    float movementSpeed      = 0.005f; //move 0.010 units per second
+    float movementSpeedWalk = 0.001f;
+    float movementSpeedRun = 0.005f;
 
     // compile and link vertex and fragment shaders into
 		// a "program" that resides in the OpenGL driver
@@ -221,40 +219,40 @@ public class Game {
         coord = camera.getPosition();
                 
         if (Keyboard.isKeyDown(Keyboard.KEY_W))//move forward
-              {AL10.alSourcePlay(source.get(0));
+            {if (AudioMoving == 0){
+              AL10.alSourcePlay(source.get(0));
+              AudioMoving = 1;}
                 if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
-                {movementSpeed = 0.03f;}
-                else{movementSpeed = 0.01f;}
-                camera.walkForward(movementSpeed*delta);}
-        else{AL10.alSourceStop(source.get(0));}
+                {camera.walkForward(movementSpeedRun*delta);}
+                else{camera.walkForward(movementSpeedWalk*delta);}
+            }
+        
+        else{AL10.alSourcePause(source.get(0));
+            
+            //AL10.alSourceStop(source.get(0));
+            AudioMoving = 0;}
+        
         
         if (Keyboard.isKeyDown(Keyboard.KEY_S))//move backwards
-            {if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
-            {movementSpeed = 0.03f;}
-            else{movementSpeed = 0.01f;} 
-            
-            camera.walkBackwards(movementSpeed*delta);
-        }
+        {if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
+                {camera.walkForward(movementSpeedRun*delta);}
+                else{camera.walkBackwards(movementSpeedWalk*delta);} }
+        
         if (Keyboard.isKeyDown(Keyboard.KEY_A))//strafe left
-            {if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
-            {movementSpeed = 0.03f;}
-            else{movementSpeed = 0.01f;}
-            
-            camera.strafeLeft(movementSpeed*delta);
-        }
+               {if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
+                {camera.walkForward(movementSpeedRun*delta);}
+                else{camera.strafeLeft(movementSpeedWalk*delta);} }
+        
         if (Keyboard.isKeyDown(Keyboard.KEY_D))//strafe right
-            {if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
-            {movementSpeed = 0.03f;}
-            else{movementSpeed = 0.01f;}
-            
-            camera.strafeRight(movementSpeed*delta);
-        }
+               {if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
+                {camera.walkForward(movementSpeedRun*delta);}
+                else{camera.strafeRight(movementSpeedWalk*delta);} }
         
         if(Keyboard.isKeyDown(Keyboard.KEY_SPACE)){
-camera.jump(movementSpeed*delta);
+camera.jump(movementSpeedWalk*delta);
         }
 if(Keyboard.isKeyDown(Keyboard.KEY_LCONTROL)){
-camera.decend(movementSpeed*delta);
+camera.decend(movementSpeedWalk*delta);
 }
 
         //look through the camera before you draw anything
@@ -474,7 +472,7 @@ GL11.glEnable(GL11.GL_LIGHTING);
     }*/
  
     //Loads the wave file from this class's package in your classpath
-    WaveData waveFile = WaveData.create("WalkingGravel.wav");
+    WaveData waveFile = WaveData.create("res/WalkingGravel.wav");
  
     AL10.alBufferData(buffer.get(0), waveFile.format, waveFile.data, waveFile.samplerate);
     waveFile.dispose();
@@ -490,6 +488,7 @@ GL11.glEnable(GL11.GL_LIGHTING);
     AL10.alSourcef(source.get(0), AL10.AL_GAIN,     1.0f          );
     AL10.alSource (source.get(0), AL10.AL_POSITION, sourcePos     );
     AL10.alSource (source.get(0), AL10.AL_VELOCITY, sourceVel     );
+    AL10.alSourcei(source.get(0), AL10.AL_LOOPING,  AL10.AL_TRUE  );
  
     // Do another error check and return.
     if (AL10.alGetError() == AL10.AL_NO_ERROR)
