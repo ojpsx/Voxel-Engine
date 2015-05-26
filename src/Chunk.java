@@ -1,3 +1,7 @@
+
+import java.nio.FloatBuffer;
+import org.lwjgl.BufferUtils;
+
 public class Chunk {
     
     static final int chunkSize = 16;
@@ -6,7 +10,10 @@ public class Chunk {
     static final int amountOfVertices = 4;
     static final int quadFaces =6;
     static final int colorSize = 3;
+    static final int BufferSize = vertexSize * amountOfVertices * quadFaces * chunkSize*chunkSize*chunkSize;
     
+    static FloatBuffer texture3dData = BufferUtils.createFloatBuffer(BufferSize);
+    static FloatBuffer vertexData = BufferUtils.createFloatBuffer(BufferSize);
    
    public Chunk() {
    for (int X=0; X<Chunk.chunkSize; X++){
@@ -33,6 +40,8 @@ public class Chunk {
                    }
                 }
             }
+        
+
 
 }
     public static int getChunkContent(int x, int y, int z) {
@@ -156,27 +165,30 @@ public class Chunk {
                 
                 };
     }
-       public float[] CallChunkVertexs(){ 
-   float[] vertarray = null; 
-    for (int X=0; X<chunkSize+1; X++){
-        for (int Y=0; Y<chunkSize+1; Y++){
-                for (int Z=0; Z<chunkSize+1; Z++){
-                    if (chunk[X][Y][Z] > 0) {
-                        vertarray = CreateCube((float) X, (float) Y, (float) Z);
-
-
-                }
+       public static void CallChunkVertexs(){ 
+    for (int X=0; X<Chunk.chunkSize; X++){
+        for (int Y=0; Y<Chunk.chunkSize; Y++){
+                for (int Z=0; Z<Chunk.chunkSize; Z++){
+                    if (getChunkContent(X,Y,Z) > 0){
+                  vertexData.put(CreateCube((float) X,(float) Y,(float) Z));
+                  texture3dData.put(gettexCoord(getChunkContent(X,Y,Z)));}
+                    
+          
                 }
         }
    }
-       return vertarray;}
+      texture3dData.put(gettexCoord(6));
+            vertexData.put(CreateSkyBox(100f,100f,100f,210f));
+            texture3dData.flip();
+            vertexData.flip(); 
+   }
 
 
-       public float[] CallChunkTex(){ 
+       public static float[] CallChunkTex(int x, int y, int z){ 
    float[] texarray = null; 
-    for (int X=0; X<chunkSize+1; X++){
-        for (int Y=0; Y<chunkSize+1; Y++){
-                for (int Z=0; Z<chunkSize+1; Z++){
+    for (int X=x; X<x+chunkSize+1; X++){
+        for (int Y=y; Y<y+chunkSize+1; Y++){
+                for (int Z=z; Z<z+chunkSize+1; Z++){
                     if (chunk[X][Y][Z] > 0) {
                         texarray = gettexCoord(chunk[X][Y][Z]);
 

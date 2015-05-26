@@ -143,28 +143,8 @@ public class Game {
     
     initTexture();
 
-
-//int[][][] chunk = new int[Chunk.chunkSize][Chunk.chunkSize][Chunk.chunkSize];
        Chunk chunk = new Chunk();
-                   FloatBuffer texture3dData = BufferUtils
-            .createFloatBuffer(Chunk.amountOfVertices * Chunk.quadFaces * 2 * Chunk.chunkSize*Chunk.chunkSize*Chunk.chunkSize*2);
-                    
-                          
-        FloatBuffer vertexData = BufferUtils.createFloatBuffer(Chunk.vertexSize*Chunk.amountOfVertices*Chunk.quadFaces*Chunk.chunkSize*Chunk.chunkSize*Chunk.chunkSize*2);
-        
-    for (int X=0; X<Chunk.chunkSize; X++){
-        for (int Y=0; Y<Chunk.chunkSize; Y++){
-                for (int Z=0; Z<Chunk.chunkSize; Z++){
-                    if (chunk.getChunkContent(X,Y,Z) > 0){
-                  vertexData.put(Chunk.CreateCube((float) X,(float) Y,(float) Z));
-                  texture3dData.put(Chunk.gettexCoord(chunk.getChunkContent(X,Y,Z)));}
-                }
-        }
-   }
-                texture3dData.put(Chunk.gettexCoord(6));
-            vertexData.put(Chunk.CreateSkyBox(100f,100f,100f,210f));
-            texture3dData.flip();
-            vertexData.flip();                
+       chunk.CallChunkVertexs();       
     
     //hide the mouse
     Mouse.setGrabbed(true);
@@ -188,7 +168,7 @@ public class Game {
 
         vboVertexHandle = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, vboVertexHandle);
-        glBufferData(GL_ARRAY_BUFFER, vertexData, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, chunk.vertexData, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
         vbo2dVertexHandle = glGenBuffers();
@@ -203,7 +183,7 @@ public class Game {
     
         vbo3dTexCoordHandle = glGenBuffers();
     glBindBuffer(GL_ARRAY_BUFFER, vbo3dTexCoordHandle);
-    glBufferData(GL_ARRAY_BUFFER, texture3dData, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, chunk.texture3dData, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         // While we're still running and the user hasn't closed the window... 
@@ -218,35 +198,40 @@ public class Game {
 
         coord = camera.getPosition();
                 
-        if (Keyboard.isKeyDown(Keyboard.KEY_W))//move forward
-            {if (AudioMoving == 0){
-              AL10.alSourcePlay(source.get(0));
-              AudioMoving = 1;}
+        if (Keyboard.isKeyDown(Keyboard.KEY_W)){//move forward
+        AudioMoving += 1;
                 if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
                 {camera.walkForward(movementSpeedRun*delta);}
-                else{camera.walkForward(movementSpeedWalk*delta);}
-            }
-        
-        else{AL10.alSourcePause(source.get(0));
-            
-            //AL10.alSourceStop(source.get(0));
-            AudioMoving = 0;}
-        
+        else{camera.walkForward(movementSpeedWalk*delta);}
+        }
+
         
         if (Keyboard.isKeyDown(Keyboard.KEY_S))//move backwards
-        {if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
-                {camera.walkForward(movementSpeedRun*delta);}
-                else{camera.walkBackwards(movementSpeedWalk*delta);} }
+        {AudioMoving += 1;
+             if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
+                {camera.walkBackwards(movementSpeedRun*delta);}
+                else{camera.walkBackwards(movementSpeedWalk*delta);}
+        }
+
+        
         
         if (Keyboard.isKeyDown(Keyboard.KEY_A))//strafe left
                {if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
-                {camera.walkForward(movementSpeedRun*delta);}
+                {camera.strafeLeft(movementSpeedRun*delta);}
                 else{camera.strafeLeft(movementSpeedWalk*delta);} }
         
         if (Keyboard.isKeyDown(Keyboard.KEY_D))//strafe right
                {if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
-                {camera.walkForward(movementSpeedRun*delta);}
+                {camera.strafeRight(movementSpeedRun*delta);}
                 else{camera.strafeRight(movementSpeedWalk*delta);} }
+        
+        int PreAudioMoving = 0;
+                    if (AudioMoving-PreAudioMoving > 0){
+              AL10.alSourcePlay(source.get(0));}
+                    else if (AudioMoving < 0){AL10.alSourcePause(source.get(0));}   
+            //AL10.alSourceStop(source.get(0));
+                    PreAudioMoving = AudioMoving;
+            AudioMoving = 0;
         
         if(Keyboard.isKeyDown(Keyboard.KEY_SPACE)){
 camera.jump(movementSpeedWalk*delta);
@@ -447,9 +432,6 @@ GL11.glEnable(GL11.GL_LIGHTING);
        
    }
    
-
- 
-
   int loadALData() {
     // Load wav data into a buffer.
     AL10.alGenBuffers(buffer);
