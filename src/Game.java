@@ -1,6 +1,10 @@
 
 import java.awt.Font;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Arrays;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.Sys;
@@ -23,6 +27,10 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.openal.AL;
 import org.lwjgl.openal.AL10;
+import static org.lwjgl.opengl.GL20.GL_FRAGMENT_SHADER;
+import static org.lwjgl.opengl.GL20.GL_VERTEX_SHADER;
+import static org.lwjgl.opengl.GL20.glCreateProgram;
+import static org.lwjgl.opengl.GL20.glCreateShader;
 import org.lwjgl.util.WaveData;
 
 public class Game {
@@ -72,6 +80,7 @@ public class Game {
 	float xRotation = 0f;
 	float yRotation = 0f;
         int AudioMoving =0;
+        int ShaderIndex;
 
     public static final boolean FULLSCREEN = false; // Whether to use fullscreen mode
     protected boolean running = false; // Whether our game loop is running
@@ -134,13 +143,14 @@ public class Game {
     float movementSpeedWalk = 0.001f;
     float movementSpeedRun = 0.005f;
 
-    // compile and link vertex and fragment shaders into
+   // compile and link vertex and fragment shaders into
 		// a "program" that resides in the OpenGL driver
 		ShaderProgram shader = new ShaderProgram();
- 		
-               //throws exception unable to load shader currentyso commented out util get chance to debug... 
-                //shader.init("simple.vertex", "simple.fragment");  
-    
+                ShaderIndex = shader.getProgramId();
+ 
+		// do the heavy lifting of loading, compiling and linking
+		// the two shaders into a usable shader program
+		shader.init("src/Shaders/simple.vertex", "src/Shaders/simple.fragment");    
     initTexture();
 
        Chunk chunk = new Chunk();
@@ -186,6 +196,7 @@ public class Game {
     glBufferData(GL_ARRAY_BUFFER, chunk.texture3dData, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    int PreAudioMoving = 0;
         // While we're still running and the user hasn't closed the window... 
         while (running && !Display.isCloseRequested()) {
             int delta = getDelta();
@@ -205,30 +216,29 @@ public class Game {
         else{camera.walkForward(movementSpeedWalk*delta);}
         }
 
-        
         if (Keyboard.isKeyDown(Keyboard.KEY_S))//move backwards
         {AudioMoving += 1;
              if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
                 {camera.walkBackwards(movementSpeedRun*delta);}
                 else{camera.walkBackwards(movementSpeedWalk*delta);}
         }
-
-        
-        
+      
         if (Keyboard.isKeyDown(Keyboard.KEY_A))//strafe left
-               {if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
+               {AudioMoving += 1;
+            if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
                 {camera.strafeLeft(movementSpeedRun*delta);}
                 else{camera.strafeLeft(movementSpeedWalk*delta);} }
         
         if (Keyboard.isKeyDown(Keyboard.KEY_D))//strafe right
-               {if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
+               {AudioMoving += 1;
+            if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT))//toggle sprint
                 {camera.strafeRight(movementSpeedRun*delta);}
                 else{camera.strafeRight(movementSpeedWalk*delta);} }
         
-        int PreAudioMoving = 0;
+        
                     if (AudioMoving-PreAudioMoving > 0){
               AL10.alSourcePlay(source.get(0));}
-                    else if (AudioMoving < 0){AL10.alSourcePause(source.get(0));}   
+                    else if (AudioMoving <= 0){AL10.alSourcePause(source.get(0));}   
             //AL10.alSourceStop(source.get(0));
                     PreAudioMoving = AudioMoving;
             AudioMoving = 0;
@@ -245,10 +255,12 @@ camera.decend(movementSpeedWalk*delta);
             // Render the game
 GL11.glLoadIdentity(); 
 camera.lookThrough();
+
      renderSetup3d();
-     
+     GL20.glUseProgram(shader.getProgramId());
      render3d();
      GL11.glLoadIdentity();
+     GL20.glUseProgram(0);
      render2d();
      renderText();
      
@@ -260,6 +272,9 @@ camera.lookThrough();
 
         // Dispose any resources and destroy our window
         dispose();
+            AL10.alDeleteSources(source);
+    AL10.alDeleteBuffers(buffer);
+    AL.destroy();
         Display.destroy();
     }
 
@@ -268,7 +283,6 @@ camera.lookThrough();
         running = false;
     }
 
-    // Called to setup our game and context
     protected void renderSetup3d() {
      
         
@@ -300,6 +314,7 @@ GL11.glEnable(GL11.GL_TEXTURE_2D);
 
 glEnable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        GL20.glUseProgram(ShaderIndex);
         glBindBuffer(GL_ARRAY_BUFFER, vboVertexHandle);
         GL11.glVertexPointer(Chunk.vertexSize, GL11.GL_FLOAT, 0, 0L);
         glBindBuffer(GL_ARRAY_BUFFER, vbo3dTexCoordHandle);
@@ -318,6 +333,7 @@ glEnable(GL_DEPTH_TEST);
 
         GL11.glDisableClientState(GL11.GL_VERTEX_ARRAY);
         GL11.glDisableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
+        GL20.glUseProgram(0);
    }
 
     // Clean up on exit
@@ -490,50 +506,5 @@ GL11.glEnable(GL11.GL_LIGHTING);
     AL10.alListener(AL10.AL_VELOCITY,    listenerVel);
     AL10.alListener(AL10.AL_ORIENTATION, listenerOri);
   }
- 
-  /**
-   * void killALData()
-   *
-   *  We have allocated memory for our buffers and sources which needs
-   *  to be returned to the system. This function frees that memory.
-   */
-  void killALData() {
-    AL10.alDeleteSources(source);
-    AL10.alDeleteBuffers(buffer);
-  }
- 
- 
-  public void execute() {
-    // Initialize OpenAL and clear the error bit.
 
- 
-    // Loop.
-
-    char c = ' ';
-    Scanner stdin = new Scanner(System.in);
-    while(c != 'q') {
-      try {
-        System.out.print("Input: ");
-        c = (char)stdin.nextLine().charAt(0);
-      } catch (Exception ex) {
-        c = 'q';
-      }
- 
-      switch(c) {
-        // Pressing 'p' will begin playing the sample.
-        case 'p': AL10.alSourcePlay(source.get(0)); break;
- 
-        // Pressing 's' will stop the sample from playing.
-        case's': AL10.alSourceStop(source.get(0)); break;
- 
-        // Pressing 'h' will pause the sample.
-        case 'h': AL10.alSourcePause(source.get(0)); break;
-      };
-    }
-    killALData();
-    AL.destroy();
-  }
 }
-  
-    
-
